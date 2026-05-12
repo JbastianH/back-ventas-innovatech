@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  # Esta linea de abajo toma el nombre de tu repo de GitHub automaticamente
+  # Esta linea de abajo toma el nombre de tu repo de GitHub automaticamente.
   ECR_REPOSITORY: ${{ github.event.repository.name }} 
 
 jobs:
