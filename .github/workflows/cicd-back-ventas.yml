@@ -1,1 +1,44 @@
 
+name: CI/CD Backend Ventas
+
+on:
+  push:
+    branches: [ "deploy" ] # Se activa al pushear a main
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout de código
+        uses: actions/checkout@v4
+
+      # 1. Configurar credenciales de AWS
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # Cambia esto a tu región (p.ej. sa-east-1 para Santiago)
+
+      # 2. Login en Amazon ECR (donde guardarás tus imágenes Docker)
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 3. Construir, etiquetar y subir la imagen Docker
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: back-ventas-repo # Nombre de tu repo en ECR
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 4. Actualizar el servicio en AWS (Ejemplo usando ECS)
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service --cluster mi-cluster-ventas --service mi-servicio-backend --force-new-deployment
