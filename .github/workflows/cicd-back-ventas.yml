@@ -1,44 +1,51 @@
-
-name: CI/CD Backend Ventas
+name: Deploy Backend to Amazon ECR
 
 on:
   push:
-    branches: [ "deploy" ] # Se activa al pushear a main
+    branches: [ "deploy" ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ${{ github.event.repository.name }} # Toma el nombre del repo automáticamente
 
 jobs:
   deploy:
-    name: Deploy to AWS
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout de código
-        uses: actions/checkout@v4
+    
+name: Checkout Code
+    uses: actions/checkout@v4
 
-      # 1. Configurar credenciales de AWS
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1 # Cambia esto a tu región (p.ej. sa-east-1 para Santiago)
+    
+name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      java-version: '17'
+      distribution: 'temurin'
+      cache: maven
 
-      # 2. Login en Amazon ECR (donde guardarás tus imágenes Docker)
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+    
+name: Build with Maven
+    run: mvn -B package -DskipTests # Compila el JAR saltando tests para ir más rápido
 
-      # 3. Construir, etiquetar y subir la imagen Docker
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: back-ventas-repo # Nombre de tu repo en ECR
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+    
+name: Configure AWS credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} # AWS Academy suele pedir este token
+      aws-region: ${{ env.AWS_REGION }}
 
-      # 4. Actualizar el servicio en AWS (Ejemplo usando ECS)
-      - name: Update ECS Service
-        run: |
-          aws ecs update-service --cluster mi-cluster-ventas --service mi-servicio-backend --force-new-deployment
+    
+name: Login to Amazon ECR
+    id: login-ecr
+    uses: aws-actions/amazon-ecr-login@v2
+
+    
+name: Build and Push Image
+    env:
+      ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    run: |
+      docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+      docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
