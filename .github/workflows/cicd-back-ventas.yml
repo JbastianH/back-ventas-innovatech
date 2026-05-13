@@ -44,3 +44,19 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      - name: Desplegar en EC2 vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}        # La IP de la instancia específica
+          username: ubuntu                    # Usuario por defecto en AWS Academy
+          key: ${{ secrets.EC2_SSH_KEY }}     # Tu archivo .pem
+          script: |
+            # 1. Entrar a la carpeta del proyecto en la EC2
+            cd /home/ubuntu/nombre-de-tu-carpeta 
+            
+            # 2. Autenticar Docker con ECR dentro del servidor
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            # 3. Descargar la imagen nueva y reiniciar el servicio
+            docker compose pull
+            docker compose up -d
