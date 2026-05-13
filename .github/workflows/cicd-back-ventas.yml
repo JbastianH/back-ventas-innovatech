@@ -44,19 +44,17 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-      - name: Desplegar en EC2 vía SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}        # La IP de la instancia específica
-          username: ubuntu                    # Usuario por defecto en AWS Academy
-          key: ${{ secrets.EC2_SSH_KEY }}     # Tu archivo .pem
-          script: |
-            # 1. Entrar a la carpeta del proyecto en la EC2
-            cd /home/ubuntu/nombre-de-tu-carpeta 
-            
-            # 2. Autenticar Docker con ECR dentro del servidor
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-            
-            # 3. Descargar la imagen nueva y reiniciar el servicio
-            docker compose pull
-            docker compose up -d
+      - name: Deploy to EC2 via SSM
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=i-0c9792f5395f211c7" \
+            --comment "Se actualiza el microservicio de Ventas en producción" \
+            --parameters 'commands=[
+              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 772895821453.dkr.ecr.us-east-1.amazonaws.com",
+              "docker pull 772895821453.dkr.ecr.us-east-1.amazonaws.com/back-ventas-innovatech:latest",
+              "docker rm -f msv-ventas || true",
+              "docker run -d -p 8081:8080 --name msv-ventas -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=ventas_db -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} 772895821453.dkr.ecr.us-east-1.amazonaws.com/back-ventas-innovatech:latest",
+              "docker image prune -f"
+            ]' \
+            --region us-east-1
