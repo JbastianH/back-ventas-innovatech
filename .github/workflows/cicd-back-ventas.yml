@@ -46,15 +46,18 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
       - name: Deploy to EC2 via SSM
         run: |
+          # Extraemos el registry para no escribir el ID de cuenta a mano
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=i-0c9792f5395f211c7" \
+            --instance-ids "i-0c9792f5395f211c7" \
             --comment "Se actualiza el microservicio de Ventas en producción" \
-            --parameters 'commands=[
-              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 772895821453.dkr.ecr.us-east-1.amazonaws.com",
-              "docker pull 772895821453.dkr.ecr.us-east-1.amazonaws.com/back-ventas-innovatech:latest",
-              "docker rm -f msv-ventas || true",
-              "docker run -d -p 8081:8080 --name msv-ventas -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=ventas_db -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} 772895821453.dkr.ecr.us-east-1.amazonaws.com/back-ventas-innovatech:latest",
-              "docker image prune -f"
-            ]' \
-            --region us-east-1
+            --parameters "commands=[
+              \"aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY\",
+              \"docker pull $REGISTRY/$ECR_REPOSITORY:latest\",
+              \"docker rm -f msv-ventas || true\",
+              \"docker run -d -p 8081:8080 --name msv-ventas -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=ventas_db -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} $REGISTRY/$ECR_REPOSITORY:latest\",
+              \"docker image prune -f\"
+            ]" \
+            --region ${{ env.AWS_REGION }}
