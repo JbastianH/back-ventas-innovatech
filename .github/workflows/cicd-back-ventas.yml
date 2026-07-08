@@ -1,4 +1,4 @@
-name: Despliegue Backend a Amazon ECR
+name: Despliegue Backend Ventas a EKS
 
 on:
   push:
@@ -6,8 +6,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  # Esta linea de abajo toma el nombre del repo de GitHub automaticamente
-  ECR_REPOSITORY: ${{ github.event.repository.name }} 
+  # Se especifica el repositorio exacto de ECR configurado para el microservicio de ventas
+  ECR_REPOSITORY: examen-back-ventas
+  # Se especifica el nombre del clúster de Amazon EKS
+  EKS_CLUSTER_NAME: cluster-examen
 
 jobs:
   deploy:
@@ -24,6 +26,7 @@ jobs:
           cache: maven
 
       - name: Compilar proyecto con Maven (Generar JAR)
+        # Se ejecuta la compilación omitiendo los tests para optimizar tiempos de despliegue
         run: mvn -B package -DskipTests
 
       - name: Configurar credenciales de AWS
@@ -41,23 +44,20 @@ jobs:
       - name: Construir imagen Docker y subir a la nube
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        # Se compila la imagen binaria y se transfiere al registro de contenedores de AWS
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-      - name: Deploy to EC2 via SSM
-        run: |
-          # Extraemos el registry para no escribir el ID de cuenta a mano
-          REGISTRY=${{ steps.login-ecr.outputs.registry }}
 
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --instance-ids "i-0c9792f5395f211c7" \
-            --comment "Se actualiza el microservicio de Ventas en producción" \
-            --parameters "commands=[
-              \"aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY\",
-              \"docker pull $REGISTRY/$ECR_REPOSITORY:latest\",
-              \"docker rm -f msv-ventas || true\",
-              \"docker run -d --restart always -p 8081:8080 --name msv-ventas -e DB_ENDPOINT=${{ secrets.DB_ENDPOINT }} -e DB_PORT=3306 -e DB_NAME=ventas_db -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} $REGISTRY/$ECR_REPOSITORY:latest\",
-              \"docker image prune -f\"
-            ]" \
-            --region ${{ env.AWS_REGION }}
+      - name: Conectar al Cluster EKS
+        # Se genera el contexto de conexión local actualizando el archivo kubeconfig con los datos del clúster
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Desplegar en Kubernetes
+        # Se garantiza la creación del espacio de nombres y se aplican las configuraciones de orquestación
+        run: |
+          kubectl create namespace examen --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f k8s/ventas-deployment.yaml -n examen
+          kubectl apply -f k8s/ventas-service.yaml -n examen
+          kubectl apply -f k8s/ventas-hpa.yaml -n examen
+          kubectl rollout restart deployment back-ventas-deployment -n examen
