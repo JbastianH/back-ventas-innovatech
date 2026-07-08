@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Se expone la API de ventas al exterior para posibilitar la comunicación con el frontend
+  name: back-ventas-service
+  namespace: examen
+spec:
+  type: LoadBalancer
+  selector:
+    app: back-ventas
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

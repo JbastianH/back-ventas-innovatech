@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Se inicializa el despliegue para el microservicio de ventas
+  name: back-ventas-deployment
+  namespace: examen
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: back-ventas
+  template:
+    metadata:
+      labels:
+        app: back-ventas
+    spec:
+      containers:
+        - name: back-ventas
+          # Se vincula la imagen almacenada en ECR para el backend de ventas
+          image: 680891292484.dkr.ecr.us-east-1.amazonaws.com/examen-back-ventas:latest
+          imagePullPolicy: Always
+          ports:
+            # Se expone el puerto estándar del contenedor Spring Boot
+            - containerPort: 8080
