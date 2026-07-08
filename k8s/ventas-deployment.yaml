@@ -22,3 +22,11 @@ spec:
           ports:
             # Se expone el puerto estándar del contenedor Spring Boot
             - containerPort: 8080
+          # Se establece la asignación de recursos mínimos y máximos para posibilitar el cálculo de porcentajes del HPA
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
