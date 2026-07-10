@@ -29,5 +29,11 @@ spec:
             memory: 1Gi
         # AÑADE ESTE BLOQUE ENV:
         env:
-        - name: SPRING_AUTOCONFIGURE_EXCLUDE
-          value: "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration"
+        - name: DB_ENDPOINT
+          value: "db-service:3306"
+        - name: DB_NAME
+          value: "examen_db"
+        - name: DB_USERNAME
+          value: "root"
+        - name: DB_PASSWORD
+          value: "admin123"
