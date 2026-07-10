@@ -15,18 +15,19 @@ spec:
         app: back-ventas
     spec:
       containers:
-        - name: back-ventas
-          # Se vincula la imagen almacenada en ECR para el backend de ventas
-          image: 680891292484.dkr.ecr.us-east-1.amazonaws.com/examen-back-ventas:latest
-          imagePullPolicy: Always
-          ports:
-            # Se expone el puerto estándar del contenedor Spring Boot
-            - containerPort: 8080
-          # Se establece la asignación de recursos mínimos y máximos para posibilitar el cálculo de porcentajes del HPA
-          resources:
-            requests:
-              cpu: "250m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "1Gi"
+      - name: back-ventas
+        image: 680891292484.dkr.ecr.us-east-1.amazonaws.com/examen-back-ventas:latest
+        ports:
+        - containerPort: 8080
+        # TUS LÍMITES ESTÁN PERFECTOS, MANTENLOS:
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        # AÑADE ESTE BLOQUE ENV:
+        env:
+        - name: SPRING_AUTOCONFIGURE_EXCLUDE
+          value: "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration"
