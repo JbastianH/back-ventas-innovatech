@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  # Se inicializa el despliegue para el microservicio de ventas
   name: back-ventas-deployment
   namespace: examen
 spec:
@@ -19,19 +18,17 @@ spec:
         image: 680891292484.dkr.ecr.us-east-1.amazonaws.com/examen-back-ventas:latest
         ports:
         - containerPort: 8080
-        # TUS LÍMITES ESTÁN PERFECTOS, MANTENLOS:
         resources:
           requests:
-            cpu: 250m
-            memory: 512Mi
+            cpu: "250m"
+            memory: "512Mi"
           limits:
-            cpu: 500m
-            memory: 1Gi
-        # AÑADE ESTE BLOQUE ENV:
-         env:
-          - name: SPRING_DATASOURCE_URL
-            value: "jdbc:mysql://db-service:3306/examen_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-          - name: SPRING_DATASOURCE_USERNAME
-            value: "root"
-          - name: SPRING_DATASOURCE_PASSWORD
-            value: "admin123"
+            cpu: "500m"
+            memory: "1Gi"
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://db-service:3306/examen_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "root"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "admin123"
