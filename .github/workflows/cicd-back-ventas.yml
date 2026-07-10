@@ -54,10 +54,19 @@ jobs:
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
       - name: Desplegar en Kubernetes
-        # Se garantiza la creación del espacio de nombres y se aplican las configuraciones de orquestación
         run: |
           kubectl create namespace examen --dry-run=client -o yaml | kubectl apply -f -
+          
+          # 1. Levantar la base de datos interna primero
+          kubectl apply -f k8s/db-deployment.yaml -n examen
+          
+          # 2. Levantar el resto de la app
           kubectl apply -f k8s/ventas-deployment.yaml -n examen
           kubectl apply -f k8s/ventas-service.yaml -n examen
           kubectl apply -f k8s/ventas-hpa.yaml -n examen
+          kubectl apply -f k8s/despachos-deployment.yaml -n examen
+          # (Añade también aquí los services/hpa de despachos si los tienes)
+          
+          # 3. Reiniciar los backends para que se conecten
           kubectl rollout restart deployment back-ventas-deployment -n examen
+          kubectl rollout restart deployment back-despachos-deployment -n examen
