@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  namespace: examen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-examen
+  template:
+    metadata:
+      labels:
+        app: db-examen
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_DATABASE
+          value: "examen_db"
+        - name: MYSQL_ROOT_PASSWORD
+          value: "admin123"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+  namespace: examen
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: db-examen
