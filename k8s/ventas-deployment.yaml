@@ -28,12 +28,10 @@ spec:
             cpu: 500m
             memory: 1Gi
         # AÑADE ESTE BLOQUE ENV:
-        env:
-        - name: DB_ENDPOINT
-          value: "db-service:3306"
-        - name: DB_NAME
-          value: "examen_db"
-        - name: DB_USERNAME
-          value: "root"
-        - name: DB_PASSWORD
-          value: "admin123"
+         env:
+          - name: SPRING_DATASOURCE_URL
+            value: "jdbc:mysql://db-service:3306/examen_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+          - name: SPRING_DATASOURCE_USERNAME
+            value: "root"
+          - name: SPRING_DATASOURCE_PASSWORD
+            value: "admin123"
